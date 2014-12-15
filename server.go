@@ -29,6 +29,7 @@ func (site *Site) AddHandler(pattern string, handleFunc func(http.ResponseWriter
 func static(site Site, w http.ResponseWriter, req *http.Request){
 	filePath := site.BaseContentDir + req.URL.Path
 	
+	fmt.Println("serving", filePath)
 	if content, err := ioutil.ReadFile(filePath); err == nil {
 		writeContent := false
 		if etagResult := checkETag(content, w, req); etagResult {
@@ -39,7 +40,6 @@ func static(site Site, w http.ResponseWriter, req *http.Request){
 
 		if (writeContent){
 			w.Header().Add("Content-Type", getMimeType(filePath))
-			w.WriteHeader(200)
 			sendContent(content, w, req)
 		}
 	}
@@ -56,8 +56,8 @@ func Start(site Site){
 	mux := mux.NewRouter()
 
 	siteStaticHandler := makeStatic(site)
-	mux.HandleFunc("/static/css/{filename}", siteStaticHandler)
-	mux.HandleFunc("/static/js/{filename}", siteStaticHandler)
+	mux.HandleFunc(`/static/{path:[a-zA-Z0-9\\/\-\.]+}`, siteStaticHandler)
+	//mux.HandleFunc("/static/js/{filename}", siteStaticHandler)
 
 	for _, h := range site.Handlers {
 		mux.HandleFunc(h.pattern, h.handler)
