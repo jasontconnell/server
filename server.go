@@ -29,7 +29,6 @@ func (site *Site) AddHandler(pattern string, handleFunc func(http.ResponseWriter
 func static(site Site, w http.ResponseWriter, req *http.Request){
 	filePath := site.BaseContentDir + req.URL.Path
 	
-	fmt.Println("serving", filePath)
 	if content, err := ioutil.ReadFile(filePath); err == nil {
 		writeContent := false
 		if etagResult := checkETag(content, w, req); etagResult {
