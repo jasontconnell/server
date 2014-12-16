@@ -2,20 +2,11 @@ package server
 
 
 import (
-	"fmt"
-	"crypto/md5"
+	"utility"
 	"time"
 	"net/http"
 	"os"
 )
-
-
-func MD5(content []byte) string {
-	sum := md5.Sum(content)
-	//final := base64.URLEncoding.EncodeToString(sum)
-	final := fmt.Sprintf("%x", sum)
-	return final
-}
 
 
 // returns true to continue processing (send content), false to not send content (304)
@@ -38,7 +29,7 @@ func checkDate(file string, w http.ResponseWriter, req *http.Request) bool {
 
 func checkETag(content []byte, w http.ResponseWriter, req *http.Request) bool {
 	retVal := true
-	md5 := MD5(content)
+	md5 := utility.MD5(content)
 
 	if etag := req.Header.Get("If-None-Match"); etag == md5 {
 		w.WriteHeader(http.StatusNotModified)
