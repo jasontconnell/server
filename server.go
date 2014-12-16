@@ -6,22 +6,23 @@ import (
 	"log"
 	"github.com/gorilla/mux"
 	"io/ioutil"
+	"html/template"
 )
 
 type Handler struct {
 	pattern string
-	handler func(http.ResponseWriter, *http.Request)
+	handler func(Site, http.ResponseWriter, *http.Request)
 }
 
 type Site struct {
 	Domain string
 	Port int
 	Handlers []Handler
-	TemplateFiles []string
 	BaseContentDir string
+	Template *template.Template
 }
 
-func (site *Site) AddHandler(pattern string, handleFunc func(http.ResponseWriter, *http.Request)) {
+func (site *Site) AddHandler(pattern string, handleFunc func(Site, http.ResponseWriter, *http.Request)) {
 	var h = &Handler{ pattern: pattern, handler: handleFunc}
 	site.Handlers = append(site.Handlers, *h)
 }
@@ -50,6 +51,12 @@ func makeStatic (site Site) func(http.ResponseWriter, *http.Request){
 	}
 }
 
+func dynamicHandler (site Site, handler func (Site, http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, req *http.Request){
+		handler(site, w, req)
+	}
+}
+
 
 func Start(site Site){
 	mux := mux.NewRouter()
@@ -59,9 +66,15 @@ func Start(site Site){
 	//mux.HandleFunc("/static/js/{filename}", siteStaticHandler)
 
 	for _, h := range site.Handlers {
-		mux.HandleFunc(h.pattern, h.handler)
+		mux.HandleFunc(h.pattern, dynamicHandler(site, h.handler))
 	}
 
+	if site.Template != nil {
+		funcMap := template.FuncMap {
+			"html" : ToHtml,
+		}
+		site.Template.Funcs(funcMap)
+	}
 
 	server := &http.Server{
 		Addr: site.Domain + ":"  + fmt.Sprint(site.Port),
