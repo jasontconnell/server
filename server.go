@@ -57,23 +57,27 @@ func dynamicHandler (site Site, handler func (Site, http.ResponseWriter, *http.R
 	}
 }
 
+func (site Site) AddFunc(name string, f interface{}) {
+	if site.Template == nil {
+		panic("Must set template before adding funcs")
+	}
+	m := template.FuncMap{}
+	m[name] = f
+	site.Template.Funcs(m)
+}
 
 func Start(site Site){
 	mux := mux.NewRouter()
 
 	siteStaticHandler := makeStatic(site)
 	mux.HandleFunc(`/static/{path:[a-zA-Z0-9\\/\-\.]+}`, siteStaticHandler)
-	//mux.HandleFunc("/static/js/{filename}", siteStaticHandler)
 
 	for _, h := range site.Handlers {
 		mux.HandleFunc(h.pattern, dynamicHandler(site, h.handler))
 	}
 
 	if site.Template != nil {
-		funcMap := template.FuncMap {
-			"html" : ToHtml,
-		}
-		site.Template.Funcs(funcMap)
+		site.Template.Funcs(template.FuncMap{ "html": ToHtml })
 	}
 
 	server := &http.Server{
