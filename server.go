@@ -20,11 +20,33 @@ type Site struct {
 	Handlers []Handler
 	BaseContentDir string
 	Template *template.Template
+	State AppState
+}
+
+func NewSite(domain string, port int, contentDir string) Site {
+	site := Site{ Domain: domain, Port: port, BaseContentDir: contentDir }
+	site.State = NewAppState()
+	return site
 }
 
 func (site *Site) AddHandler(pattern string, handleFunc func(Site, http.ResponseWriter, *http.Request)) {
 	var h = &Handler{ pattern: pattern, handler: handleFunc}
 	site.Handlers = append(site.Handlers, *h)
+}
+
+func (site *Site) AddState(key string, value interface{}){
+	if site.State != nil {
+		site.State[key] = value
+	}
+}
+
+func (site *Site) GetState(key string) interface{}{
+	var ret interface{}
+
+	if site.State != nil {
+		ret = site.State[key]
+	}
+	return ret
 }
 
 func static(site Site, w http.ResponseWriter, req *http.Request){
@@ -53,6 +75,7 @@ func makeStatic (site Site) func(http.ResponseWriter, *http.Request){
 
 func dynamicHandler (site Site, handler func (Site, http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request){
+		w.Header().Set("Content-Type", "text/html")
 		handler(site, w, req)
 	}
 }
@@ -79,6 +102,7 @@ func Start(site Site){
 	if site.Template != nil {
 		site.Template.Funcs(template.FuncMap{ "html": ToHtml })
 	}
+
 
 	server := &http.Server{
 		Addr: site.Domain + ":"  + fmt.Sprint(site.Port),
