@@ -18,11 +18,13 @@ func checkDate(file string, w http.ResponseWriter, req *http.Request) bool {
 		if t, err := time.Parse(http.TimeFormat, req.Header.Get("If-Modified-Since")); err == nil && statinfo.ModTime().Unix() <= t.Unix() {
 			w.WriteHeader(http.StatusNotModified)
 			retVal = false
-		} else if err == nil {
+		} else {
 			w.Header().Add("Last-Modified", statinfo.ModTime().Format(http.TimeFormat))
 			w.Header().Add("Cache-Control", "max-age=120")
 			retVal = true
 		}
+	} else {
+		w.WriteHeader(http.StatusNotFound)
 	}
 	return retVal
 }

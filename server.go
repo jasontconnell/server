@@ -26,6 +26,9 @@ type Site struct {
 func NewSite(domain string, port int, contentDir string) Site {
 	site := Site{ Domain: domain, Port: port, BaseContentDir: contentDir }
 	site.State = NewAppState()
+	site.Template = template.New("Templates")
+	site.Template.Funcs(template.FuncMap{ "html": ToHtml, "toKey": ToKey, "formatDate": FormatDate })
+
 	return site
 }
 
@@ -60,6 +63,7 @@ func static(site Site, w http.ResponseWriter, req *http.Request){
 			writeContent = true
 		}
 
+		fmt.Println("writeContent", writeContent, req.URL)
 		if (writeContent){
 			w.Header().Add("Content-Type", getMimeType(filePath))
 			sendContent(content, w, req)
@@ -99,9 +103,6 @@ func Start(site Site){
 		mux.HandleFunc(h.pattern, dynamicHandler(site, h.handler))
 	}
 
-	if site.Template != nil {
-		site.Template.Funcs(template.FuncMap{ "html": ToHtml })
-	}
 
 
 	server := &http.Server{
