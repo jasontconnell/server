@@ -63,11 +63,12 @@ func static(site Site, w http.ResponseWriter, req *http.Request){
 			writeContent = true
 		}
 
-		fmt.Println("writeContent", writeContent, req.URL)
 		if (writeContent){
 			w.Header().Add("Content-Type", getMimeType(filePath))
 			sendContent(content, w, req)
 		}
+	} else {
+		fmt.Println(err)
 	}
 }
 
@@ -95,7 +96,6 @@ func (site Site) AddFunc(name string, f interface{}) {
 
 func Start(site Site){
 	mux := mux.NewRouter()
-
 	siteStaticHandler := makeStatic(site)
 	mux.HandleFunc(`/static/{path:[a-zA-Z0-9\\/\-\.]+}`, siteStaticHandler)
 
@@ -103,13 +103,10 @@ func Start(site Site){
 		mux.HandleFunc(h.pattern, dynamicHandler(site, h.handler))
 	}
 
-
-
 	server := &http.Server{
 		Addr: site.Domain + ":"  + fmt.Sprint(site.Port),
 		Handler: mux,
 	}
-
 
 	fmt.Println("Starting server ", server.Addr)
 	log.Fatal(server.ListenAndServe())

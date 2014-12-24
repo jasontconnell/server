@@ -19,10 +19,10 @@ func checkDate(file string, w http.ResponseWriter, req *http.Request) bool {
 			w.WriteHeader(http.StatusNotModified)
 			retVal = false
 		} else {
-			w.Header().Add("Last-Modified", statinfo.ModTime().Format(http.TimeFormat))
-			w.Header().Add("Cache-Control", "max-age=120")
 			retVal = true
 		}
+		w.Header().Add("Last-Modified", statinfo.ModTime().Format(http.TimeFormat))
+		w.Header().Add("Cache-Control", "max-age=120")
 	} else {
 		w.WriteHeader(http.StatusNotFound)
 	}
@@ -37,9 +37,9 @@ func checkETag(content []byte, w http.ResponseWriter, req *http.Request) bool {
 		w.WriteHeader(http.StatusNotModified)
 		retVal = false
 	} else {
-		w.Header().Add("ETag", md5)
 		retVal = true
 	}
+	w.Header().Add("ETag", md5)
 
 	return retVal
 }
