@@ -60,7 +60,6 @@ func (site *Site) GetState(key string) interface{}{
 
 func static(site Site, w http.ResponseWriter, req *http.Request){
 	filePath := site.BaseContentDir + req.URL.Path
-	fmt.Println(filePath)
 
 	if content, err := ioutil.ReadFile(filePath); err == nil {
 		writeContent := false
