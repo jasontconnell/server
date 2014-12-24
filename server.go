@@ -18,6 +18,7 @@ type Site struct {
 	Domain string
 	Port int
 	Handlers []Handler
+	AsyncHandlers []Handler
 	BaseContentDir string
 	Template *template.Template
 	State AppState
@@ -37,6 +38,11 @@ func (site *Site) AddHandler(pattern string, handleFunc func(Site, http.Response
 	site.Handlers = append(site.Handlers, *h)
 }
 
+func (site *Site) AddAsyncHandler(pattern string, handleFunc func(Site, http.ResponseWriter, *http.Request)) {
+	var h = &Handler{ pattern: pattern, handler: handleFunc}
+	site.AsyncHandlers = append(site.AsyncHandlers, *h)
+}
+
 func (site *Site) AddState(key string, value interface{}){
 	if site.State != nil {
 		site.State[key] = value
@@ -54,7 +60,8 @@ func (site *Site) GetState(key string) interface{}{
 
 func static(site Site, w http.ResponseWriter, req *http.Request){
 	filePath := site.BaseContentDir + req.URL.Path
-	
+	fmt.Println(filePath)
+
 	if content, err := ioutil.ReadFile(filePath); err == nil {
 		writeContent := false
 		if etagResult := checkETag(content, w, req); etagResult {
@@ -68,7 +75,7 @@ func static(site Site, w http.ResponseWriter, req *http.Request){
 			sendContent(content, w, req)
 		}
 	} else {
-		fmt.Println(err)
+		w.WriteHeader(http.StatusNotFound)
 	}
 }
 
@@ -78,9 +85,9 @@ func makeStatic (site Site) func(http.ResponseWriter, *http.Request){
 	}
 }
 
-func dynamicHandler (site Site, handler func (Site, http.ResponseWriter, *http.Request)) func(http.ResponseWriter, *http.Request) {
+func dynamicHandler (site Site, handler func (Site, http.ResponseWriter, *http.Request), contentType string) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request){
-		w.Header().Set("Content-Type", "text/html")
+		w.Header().Set("Content-Type", contentType)
 		handler(site, w, req)
 	}
 }
@@ -97,11 +104,16 @@ func (site Site) AddFunc(name string, f interface{}) {
 func Start(site Site){
 	mux := mux.NewRouter()
 	siteStaticHandler := makeStatic(site)
-	mux.HandleFunc(`/static/{path:[a-zA-Z0-9\\/\-\.]+}`, siteStaticHandler)
+	mux.HandleFunc(`/static/{path:[a-zA-Z0-9\\/\-\._]+}`, siteStaticHandler)
 
 	for _, h := range site.Handlers {
-		mux.HandleFunc(h.pattern, dynamicHandler(site, h.handler))
+		mux.HandleFunc(h.pattern, dynamicHandler(site, h.handler, "text/html"))
 	}
+
+	for _, h := range site.AsyncHandlers {
+		mux.HandleFunc(h.pattern, dynamicHandler(site, h.handler, "application/json"))
+	}
+
 
 	server := &http.Server{
 		Addr: site.Domain + ":"  + fmt.Sprint(site.Port),
