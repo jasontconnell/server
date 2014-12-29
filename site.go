@@ -22,11 +22,13 @@ type Site struct {
 	BaseContentDir string
 	Template *template.Template
 	State AppState
+	ServerState ServerState
 }
 
-func NewSite(domain string, port int, contentDir string) Site {
-	site := Site{ Domain: domain, Port: port, BaseContentDir: contentDir }
+func NewSite(config Configuration) Site {
+	site := Site{ Domain: config.HostName, Port: config.Port, BaseContentDir: config.ContentLocation }
 	site.State = NewAppState()
+	site.ServerState = NewServerState()
 	site.Template = template.New("Templates")
 	site.Template.Funcs(template.FuncMap{ "html": ToHtml, "toKey": ToKey, "formatDate": FormatDate })
 
@@ -51,9 +53,22 @@ func (site *Site) AddState(key string, value interface{}){
 
 func (site *Site) GetState(key string) interface{}{
 	var ret interface{}
-
 	if site.State != nil {
 		ret = site.State[key]
+	}
+	return ret
+}
+
+func (site *Site) AddServerState(key string, value interface{}){
+	if site.ServerState != nil {
+		site.ServerState[key] = value
+	}
+}
+
+func (site *Site) GetServerState(key string) interface{} {
+	var ret interface{}
+	if site.ServerState != nil {
+		ret = site.ServerState[key]
 	}
 	return ret
 }
@@ -112,7 +127,6 @@ func Start(site Site){
 	for _, h := range site.AsyncHandlers {
 		mux.HandleFunc(h.pattern, dynamicHandler(site, h.handler, "application/json"))
 	}
-
 
 	server := &http.Server{
 		Addr: site.Domain + ":"  + fmt.Sprint(site.Port),
