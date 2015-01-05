@@ -7,4 +7,5 @@ import (
 type Page struct {
 	Url url.URL
 	Path string
+	WindowTitle string
 }
