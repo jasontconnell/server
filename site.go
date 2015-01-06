@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"log"
 	"github.com/gorilla/mux"
-	"io/ioutil"
 	"html/template"
 )
 
@@ -73,32 +72,6 @@ func (site *Site) GetServerState(key string) interface{} {
 	return ret
 }
 
-func static(site Site, w http.ResponseWriter, req *http.Request){
-	filePath := site.BaseContentDir + req.URL.Path
-
-	if content, err := ioutil.ReadFile(filePath); err == nil {
-		writeContent := false
-		if etagResult := checkETag(content, w, req); etagResult {
-			writeContent = true
-		} else if dateResult := checkDate(filePath, w, req); etagResult && dateResult {
-			writeContent = true
-		}
-
-		if (writeContent){
-			w.Header().Add("Content-Type", getMimeType(filePath))
-			sendContent(content, w, req)
-		}
-	} else {
-		w.WriteHeader(http.StatusNotFound)
-	}
-}
-
-func makeStatic (site Site) func(http.ResponseWriter, *http.Request){
-	return func(w http.ResponseWriter, req *http.Request){
-		static(site, w, req)
-	}
-}
-
 func dynamicHandler (site Site, handler func (Site, http.ResponseWriter, *http.Request), contentType string) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, req *http.Request){
 		w.Header().Set("Content-Type", contentType)
@@ -117,8 +90,6 @@ func (site Site) AddFunc(name string, f interface{}) {
 
 func Start(site Site){
 	mux := mux.NewRouter()
-	siteStaticHandler := makeStatic(site)
-	mux.HandleFunc(`/static/{path:[a-zA-Z0-9\\/\-\._]+}`, siteStaticHandler)
 
 	for _, h := range site.Handlers {
 		mux.HandleFunc(h.pattern, dynamicHandler(site, h.handler, "text/html"))
