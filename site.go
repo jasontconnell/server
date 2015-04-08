@@ -59,15 +59,19 @@ func (site *Site) GetState(key string) interface{}{
 }
 
 func (site *Site) AddServerState(key string, value interface{}){
-	if site.ServerState != nil {
+	if _,ok := site.ServerState[key]; !ok {
 		site.ServerState[key] = value
 	}
 }
 
 func (site *Site) GetServerState(key string) interface{} {
 	var ret interface{}
-	if site.ServerState != nil {
+
+	if _,ok := site.ServerState[key]; ok {
 		ret = site.ServerState[key]
+		fmt.Println("found", key)
+	} else {
+		fmt.Println("not found", key)
 	}
 	return ret
 }
