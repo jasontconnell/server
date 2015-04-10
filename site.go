@@ -69,9 +69,6 @@ func (site *Site) GetServerState(key string) interface{} {
 
 	if _,ok := site.ServerState[key]; ok {
 		ret = site.ServerState[key]
-		fmt.Println("found", key)
-	} else {
-		fmt.Println("not found", key)
 	}
 	return ret
 }
