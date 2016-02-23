@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"net/http"
 	"log"
-	"github.com/gorilla/mux"
+	//"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
 	"html/template"
 )
 
@@ -13,15 +14,29 @@ type Handler struct {
 	handler func(Site, http.ResponseWriter, *http.Request)
 }
 
+type SocketHandler struct {
+	pattern string
+	handler func(Site, *websocket.Conn)
+}
+
 type Site struct {
 	Domain string
 	Port int
 	Handlers []Handler
 	AsyncHandlers []Handler
+	SocketHandlers []SocketHandler
 	BaseContentDir string
 	Template *template.Template
 	State AppState
 	ServerState ServerState
+}
+
+var upgrader = websocket.Upgrader{
+    ReadBufferSize:  1024,
+    WriteBufferSize: 1024,
+	CheckOrigin: func(req *http.Request) bool { 
+		return true
+	},
 }
 
 func NewSite(config Configuration) Site {
@@ -42,6 +57,11 @@ func (site *Site) AddHandler(pattern string, handleFunc func(Site, http.Response
 func (site *Site) AddAsyncHandler(pattern string, handleFunc func(Site, http.ResponseWriter, *http.Request)) {
 	var h = &Handler{ pattern: pattern, handler: handleFunc}
 	site.AsyncHandlers = append(site.AsyncHandlers, *h)
+}
+
+func (site *Site) AddWebsocketHandler(pattern string, handleFunc func(Site, *websocket.Conn)){
+	var h = &SocketHandler{ pattern: pattern, handler: handleFunc}
+	site.SocketHandlers = append(site.SocketHandlers, *h)
 }
 
 func (site *Site) AddState(key string, value interface{}){
@@ -80,8 +100,20 @@ func dynamicHandler (site Site, handler func (Site, http.ResponseWriter, *http.R
 	}
 }
 
+func websocketHandler(site Site, handler func(Site, *websocket.Conn)) func(http.ResponseWriter, *http.Request) {
+	return func(w http.ResponseWriter, req *http.Request){
+		conn, err := upgrader.Upgrade(w, req, nil)
+
+		if err != nil {
+			panic(err)
+		}
+
+		handler(site, conn)
+	}
+}
+
 func (site Site) AddFunc(name string, f interface{}) {
-	if site.Template == nil {
+	if site.Template == nil {	
 		panic("Must set template before adding funcs")
 	}
 	m := template.FuncMap{}
@@ -90,7 +122,7 @@ func (site Site) AddFunc(name string, f interface{}) {
 }
 
 func Start(site Site){
-	mux := mux.NewRouter()
+	mux := http.NewServeMux()
 
 	for _, h := range site.Handlers {
 		mux.HandleFunc(h.pattern, dynamicHandler(site, h.handler, "text/html"))
@@ -98,6 +130,10 @@ func Start(site Site){
 
 	for _, h := range site.AsyncHandlers {
 		mux.HandleFunc(h.pattern, dynamicHandler(site, h.handler, "application/json"))
+	}
+
+	for _, h := range site.SocketHandlers {
+		mux.HandleFunc(h.pattern, websocketHandler(site, h.handler))
 	}
 
 	server := &http.Server{
