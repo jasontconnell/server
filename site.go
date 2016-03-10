@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"log"
-	//"github.com/gorilla/mux"
+	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 	"html/template"
 )
@@ -122,7 +122,7 @@ func (site Site) AddFunc(name string, f interface{}) {
 }
 
 func Start(site Site){
-	mux := http.NewServeMux()
+	mux := mux.NewRouter()
 
 	for _, h := range site.Handlers {
 		mux.HandleFunc(h.pattern, dynamicHandler(site, h.handler, "text/html"))
