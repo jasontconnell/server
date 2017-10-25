@@ -1,7 +1,7 @@
 package server
 
 import (
-	"conf"
+	"github.com/jasontconnell/conf"
 )
 
 type Configuration struct {
