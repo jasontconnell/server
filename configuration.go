@@ -5,8 +5,8 @@ import (
 )
 
 type Configuration struct {
-	HostName string `json:"hostname"`
-	Port int 		`json:"port"`
+	HostName        string `json:"hostname"`
+	Port            int    `json:"port"`
 	ContentLocation string `json:"contentLocation"`
 }
 
