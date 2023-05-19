@@ -2,11 +2,12 @@ package server
 
 import (
 	"fmt"
-	"github.com/gorilla/mux"
-	"github.com/gorilla/websocket"
 	"html/template"
 	"log"
 	"net/http"
+
+	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
 )
 
 type Handler struct {
@@ -39,8 +40,8 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func NewSite(config Configuration) Site {
-	site := Site{Domain: config.HostName, Port: config.Port, BaseContentDir: config.ContentLocation}
+func NewSite(config Configuration) *Site {
+	site := &Site{Domain: config.HostName, Port: config.Port, BaseContentDir: config.ContentLocation}
 	site.State = NewAppState()
 	site.ServerState = NewServerState()
 	site.Template = template.New("Templates")
